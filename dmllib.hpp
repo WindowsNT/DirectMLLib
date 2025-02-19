@@ -100,8 +100,8 @@ private:
 	friend class ML;
 	friend class NN;
 
-	dml::Graph* graph = 0;
-	ID3D12Device* d3D12Device = 0;
+	std::shared_ptr<dml::Graph> graph;
+	ML* ml = 0;
 	std::vector<DML_BINDING_DESC> bindings_in;
 	std::vector<DML_BINDING_DESC> bindings_out;
 
@@ -128,7 +128,7 @@ public:
 
 
 
-	MLOP(ID3D12Device* d3D12Device = 0, dml::Graph* gr = 0);
+	MLOP(ML* ml);
 	MLOP_ITEM& Item(size_t i);
 	MLOP_ITEM& WithTag(LPARAM tag);
 
@@ -157,7 +157,6 @@ public:
 	CComPtr<IDMLCommandRecorder> dmlCommandRecorder;
 	DML_BINDING_PROPERTIES initializeBindingProperties = {}, executeBindingProperties = {};
 	CComPtr<ID3D12DescriptorHeap> descriptorHeap;
-	std::shared_ptr<dml::Graph> graph;
 
 	ML(bool dbg = 0);
 	HRESULT On();

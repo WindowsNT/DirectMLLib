@@ -14,7 +14,7 @@ int main()
 
 
 
-	MLOP op1(ml.d3D12Device,ml.graph.get());
+	MLOP op1(&ml);
 	op1.
 		AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 100,100} }).
 		AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 100,100} }).

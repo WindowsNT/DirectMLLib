@@ -95,14 +95,14 @@ void MLOP::tape()
 	auto bp = dmlCompiledOperator->GetBindingProperties();
 	if (bp.TemporaryResourceSize)
 	{
-		tre.Create2(d3D12Device, bp.TemporaryResourceSize, true);
+		tre.Create2(ml->d3D12Device, bp.TemporaryResourceSize, true);
 		auto bu = tre.BindingDesc();
 		dmlBindingTable->BindTemporaryResource(&bu);
 
 	}
 	if (bp.PersistentResourceSize)
 	{
-		pre.Create2(d3D12Device, bp.PersistentResourceSize, true);
+		pre.Create2(ml->d3D12Device, bp.PersistentResourceSize, true);
 		auto bu = pre.BindingDesc();
 		dmlBindingTable->BindPersistentResource(&bu);
 	}
@@ -175,14 +175,14 @@ void MLOP::tapi()
 	auto bp = dmlOperatorInitializer->GetBindingProperties();
 	if (bp.TemporaryResourceSize)
 	{
-		tri.Create2(d3D12Device, bp.TemporaryResourceSize, true);
+		tri.Create2(ml->d3D12Device, bp.TemporaryResourceSize, true);
 		auto bu = tri.BindingDesc();
 		dmlBindingTable->BindTemporaryResource(&bu);
 
 	}
 	if (bp.PersistentResourceSize)
 	{
-		pri.Create2(d3D12Device, bp.PersistentResourceSize, true);
+		pri.Create2(ml->d3D12Device, bp.PersistentResourceSize, true);
 		auto bu = pri.BindingDesc();
 		dmlBindingTable->BindPersistentResource(&bu);
 	}
@@ -404,7 +404,6 @@ HRESULT ML::CreateDML()
 	if (!dmlDevice)
 		return E_FAIL;
 
-	graph = std::make_shared<dml::Graph>(dmlDevice);
 	return S_OK;
 }
 
@@ -498,10 +497,13 @@ HRESULT ML::InitializeDirect3D12()
 }
 
 
-MLOP::MLOP(ID3D12Device* _d3D12Device, dml::Graph* gr)
+MLOP::MLOP(ML* _ml)
 {
-	graph = gr;
-	d3D12Device = _d3D12Device;
+	ml = _ml;
+	if (ml)
+	{
+		graph = std::make_shared<dml::Graph>(ml->dmlDevice.p);
+	}
 }
 
 
@@ -523,7 +525,7 @@ MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MO
 	if (NewBuffer)
 	{
 		item.buffer = MLBUFFER();
-		item.buffer->Create(d3D12Device, expr);
+		item.buffer->Create(ml->d3D12Device, expr);
 	}
 	item.bds = bds;
 	items.push_back(item);
