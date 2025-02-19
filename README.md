@@ -25,16 +25,6 @@ int main()
 		AddToOutput(op1.Output(0));
 	ml.ops.push_back(op1.Build());
 
-/* Example of Gemm
-	MLOP op2(ml.d3D12Device, ml.dmlDevice);
-	op2.AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 1,1,10,100} });
-	op2.AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 1,1,100,4} });
-	dml::GemmBuilder gb(op2.Input(0),op2.Input(1));
-	op2.AddOutput(gb.Build());
-	op2.AddToOutput(op2.Output(0));	
-	ml.ops.push_back(op2.Build());
-*/
-
 	// Initialize
 	ml.Prepare();
 
