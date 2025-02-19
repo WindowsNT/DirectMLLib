@@ -3,11 +3,21 @@
 
 class ML;
 
-struct MLBUFFER
+struct MLRESOURCEANDSIZE
 {
 	CComPtr<ID3D12Resource> b = 0;
 	size_t ls = 0;
-	size_t offset = 0;
+
+	operator bool()
+	{
+		return b && ls;
+	}
+};
+
+struct MLBUFFER
+{
+	MLRESOURCEANDSIZE b;
+	LPARAM Tag = 0;
 
 	static unsigned long long TensorSizeAlign(unsigned long long t)
 	{
@@ -49,47 +59,78 @@ struct MLBUFFER
 };
 
 
-struct MLOP
+
+struct MLOP_ITEM
 {
+	LPARAM tag = 0;
+	unsigned int InputTensorTag = 0; // 1 based
+	int BindingMode = 0; // none 1 in 2 out
+	
+	std::optional<MLBUFFER> buffer;
+	dml::Expression expr;
+	std::optional<DML_BINDING_DESC> bds;
+
+	operator dml::Expression()
+	{
+		return expr;
+	}
+
+	operator DML_BINDING_DESC ()
+	{
+		if (buffer)
+			return buffer->BindingDesc();
+		if (bds)
+			return *bds;
+		throw;
+	}
+
+};
+
+class MLOP
+{
+private:
+
+	MLBUFFER tri, tre, pri, pre;
+	friend class ML;
+	friend class NN;
+
+	std::shared_ptr<dml::Graph> graph;
+	ID3D12Device* d3D12Device = 0;
+	std::vector<DML_BINDING_DESC> bindings_in;
+	std::vector<DML_BINDING_DESC> bindings_out;
+
 	CComPtr<IDMLCompiledOperator> dmlCompiledOperator;
 	CComPtr<IDMLOperatorInitializer> dmlOperatorInitializer;
-
-
 
 	DML_BINDING_TABLE_DESC dmlBindingTableDesc{};
 	CComPtr<IDMLBindingTable> dmlBindingTable;
 	UINT descriptorCount = 0;
 
-	void tapi(ID3D12Device* d3D12Device);
-	void tape(ID3D12Device* d3D12Device);
+	void tapi();
+	void tape();
 	HRESULT CreateInitializer(IDMLDevice* dmlDevice);
 
 	void TransitionBindings(ID3D12GraphicsCommandList* commandList);
 	bool ResetToExecute();
-	UINT FindDC();
+	UINT FindDescriptorCount();
 	bool CreateBindingTable(IDMLDevice* dmlDevice, ID3D12DescriptorHeap* descriptorHeap);
 
-	MLBUFFER tri, tre, pri, pre;
+	std::vector<MLOP_ITEM> items;
+
+public:
 
 
-	std::shared_ptr<dml::Graph> graph;
-	ID3D12Device* d3D12Device = 0;
-	std::vector<MLBUFFER> inputs;
-	std::vector<MLBUFFER> outputs;
-	std::vector<dml::Expression> intermediates;
-	std::vector<DML_BINDING_DESC> bindings_in;
-	std::vector<DML_BINDING_DESC> bindings_out;
-	std::vector<dml::Expression> outputs2;
 
 
-	MLOP(ID3D12Device* d3D12Device, IDMLDevice* dml);
-	MLBUFFER& Input(size_t i);
-	MLBUFFER& Output(size_t i);
-	dml::Expression& Intermediate(size_t i);
-	MLOP& AddInput(dml::TensorDesc td);
-	MLOP& AddIntermediate(dml::Expression td);
-	MLOP& AddOutput(dml::Expression e);
-	MLOP& AddToOutput(MLBUFFER& out);
+	MLOP(ID3D12Device* d3D12Device = 0, IDMLDevice* dml = 0);
+	MLOP_ITEM& Item(size_t i);
+	MLOP_ITEM& WithTag(LPARAM tag);
+
+	MLOP& AddInput(dml::TensorDesc td, LPARAM tag = 0, bool NewBuffer = 1, int Binding = 1, DML_BINDING_DESC* bds = 0);
+	MLOP& AddItem(dml::Expression td, LPARAM tag = 0, bool NewBuffer = 0, int Binding = 0, DML_BINDING_DESC* bds = 0, uint32_t nit = 0);
+	MLOP& AddIntermediate(dml::Expression td, LPARAM tag = 0);
+	MLOP& AddOutput(dml::Expression td, LPARAM tag = 0);
+
 	MLOP& Build();
 
 

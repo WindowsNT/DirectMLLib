@@ -4,12 +4,12 @@
 
 DML_BINDING_DESC MLBUFFER::BindingDesc()
 {
-	if (!b)
+	if (!b.b)
 		throw;
 	DML_BINDING_DESC dbd = {};
-	dmb.Buffer = b;
-	dmb.Offset = offset;
-	dmb.SizeInBytes = ls;
+	dmb.Buffer = b.b;
+	dmb.Offset = 0;
+	dmb.SizeInBytes = b.ls;
 	dbd.Type = DML_BINDING_TYPE_BUFFER;
 	dbd.Desc = &dmb;
 	return dbd;
@@ -23,44 +23,44 @@ DML_BINDING_DESC MLBUFFER::BindingDesc()
 
 HRESULT MLBUFFER::Create2(ID3D12Device* d3D12Device, size_t x, [[maybe_unused]] bool ForceInternal)
 {
-	b = 0;
-	ls = x;
+	b.b = 0;
+	b.ls = x;
 	auto x1 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	auto x2 = CD3DX12_RESOURCE_DESC::Buffer(ls, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	auto x2 = CD3DX12_RESOURCE_DESC::Buffer(b.ls, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	[[maybe_unused]] auto hr = d3D12Device->CreateCommittedResource(
 		&x1,
 		D3D12_HEAP_FLAG_NONE,
 		&x2,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(&b));
+		IID_PPV_ARGS(&b.b));
 	return hr;
 }
 
 
 UINT64 MLBUFFER::Upload(ML* ml,void* data, size_t by)
 {
-	if (!b)
+	if (!b.b)
 		return 0;
 	std::vector<char> bigger_data;
 
-	if (by != ls)
+	if (by != b.ls)
 	{
-		if (by > ls)
+		if (by > b.ls)
 		{
 
 		}
 		else
 		{
-			bigger_data.resize(ls);
+			bigger_data.resize(b.ls);
 			memcpy(bigger_data.data(), data, by);
 			data = bigger_data.data();
-			by = ls;
+			by = b.ls;
 		}
 	}
 
 	auto x1 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	auto x2 = CD3DX12_RESOURCE_DESC::Buffer(ls, D3D12_RESOURCE_FLAG_NONE);
+	auto x2 = CD3DX12_RESOURCE_DESC::Buffer(b.ls, D3D12_RESOURCE_FLAG_NONE);
 	if (!uploadBuffer)
 	{
 		[[maybe_unused]] auto hr = ml->d3D12Device->CreateCommittedResource(
@@ -74,7 +74,7 @@ UINT64 MLBUFFER::Upload(ML* ml,void* data, size_t by)
 
 	// Transition the destination buffer to COPY_DEST
 	auto transitionToCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
-		b,
+		b.b,
 		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, // Or current state
 		D3D12_RESOURCE_STATE_COPY_DEST);
 	ml->commandList->ResourceBarrier(1, &transitionToCopyDest);
@@ -85,12 +85,12 @@ UINT64 MLBUFFER::Upload(ML* ml,void* data, size_t by)
 	tensorSubresourceData.SlicePitch = tensorSubresourceData.RowPitch;
 
 	// Upload the input tensor to the GPU.
-	auto rv = ::UpdateSubresources(ml->commandList, b, uploadBuffer, offset, 0, 1, &tensorSubresourceData);
+	auto rv = ::UpdateSubresources(ml->commandList, b.b, uploadBuffer, 0, 0, 1, &tensorSubresourceData);
 	return rv;
 }
 
 
-void MLOP::tape(ID3D12Device* d3D12Device)
+void MLOP::tape()
 {
 	auto bp = dmlCompiledOperator->GetBindingProperties();
 	if (bp.TemporaryResourceSize)
@@ -125,7 +125,7 @@ bool MLOP::ResetToExecute()
 }
 
 
-UINT MLOP::FindDC()
+UINT MLOP::FindDescriptorCount()
 {
 	auto  initializeBindingProperties = dmlOperatorInitializer->GetBindingProperties();
 	auto executeBindingProperties = dmlCompiledOperator->GetBindingProperties();
@@ -170,7 +170,7 @@ void MLOP::TransitionBindings(ID3D12GraphicsCommandList* commandList)
 }
 
 
-void MLOP::tapi(ID3D12Device* d3D12Device)
+void MLOP::tapi()
 {
 	auto bp = dmlOperatorInitializer->GetBindingProperties();
 	if (bp.TemporaryResourceSize)
@@ -193,12 +193,12 @@ void MLOP::tapi(ID3D12Device* d3D12Device)
 HRESULT MLBUFFER::Download(ML* ml, size_t j, std::vector<char>& out)
 {
 	out.resize(0);
-	CComPtr< ID3D12Resource> outputBuffer = b;
+	CComPtr< ID3D12Resource> outputBuffer = b.b;
 	if (!outputBuffer || !ml)
 		return E_NOINTERFACE;
 
 	if (j == (size_t)-1)
-		j = ls;
+		j = b.ls;
 	CComPtr<ID3D12Resource> readbackBuffer;
 	auto x7 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
 	auto x8 = CD3DX12_RESOURCE_DESC::Buffer(j);
@@ -219,13 +219,13 @@ HRESULT MLBUFFER::Download(ML* ml, size_t j, std::vector<char>& out)
 	if (ml)
 		ml->CloseExecuteResetWait();
 
-	D3D12_RANGE tensorBufferRange{ offset, static_cast<SIZE_T>(j) };
+	D3D12_RANGE tensorBufferRange{ 0, static_cast<SIZE_T>(j) };
 	void* outputBufferData = 0;
 	hr = readbackBuffer->Map(0, &tensorBufferRange, &outputBufferData);
 	if (FAILED(hr))
 		return hr;
 	out.resize(j);
-	memcpy(out.data(), ((char*)outputBufferData + offset), out.size());
+	memcpy(out.data(), ((char*)outputBufferData + 0), out.size());
 	return S_OK;
 
 }
@@ -267,7 +267,7 @@ void  ML::Prepare()
 
 	// Bind Temporary and 
 	for (auto& op : ops)
-		op.tapi(d3D12Device);
+		op.tapi();
 
 	// The command recorder is a stateless object that records Dispatches into an existing Direct3D 12 command list.
 	CreateCommandRecorder();
@@ -297,7 +297,7 @@ void ML::Run(size_t which)
 		op.dmlBindingTable->BindOutputs((UINT)op.bindings_out.size(), op.bindings_out.data());
 
 		// And temporary/persistent resources
-		op.tape(d3D12Device);
+		op.tape();
 
 		// And run it
 		dmlCommandRecorder->RecordDispatch(commandList, op.dmlCompiledOperator, op.dmlBindingTable);
@@ -314,7 +314,7 @@ bool ML::CreateHeap()
 	// we create a single descriptor heap that's large enough to satisfy them both.
 	UINT descriptorCount = 0;
 	for (auto& op : ops)
-		descriptorCount += op.FindDC();
+		descriptorCount += op.FindDescriptorCount();
 
 	if (descriptorCount == 0)
 		descriptorCount = 1;
@@ -503,69 +503,91 @@ MLOP::MLOP(ID3D12Device* d3D12Device, IDMLDevice* dml)
 }
 
 
-MLBUFFER& MLOP::Input(size_t i)
+
+MLOP_ITEM& MLOP::Item(size_t i)
 {
-	if (inputs.size() <= i)
+	if (items.size() <= i)
 		throw;
-	return inputs[i];
+	return items[i];
 }
 
-MLBUFFER& MLOP::Output(size_t i)
+MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, int Binding, DML_BINDING_DESC* bds, uint32_t nit)
 {
-	if (outputs.size() <= i)
-		throw;
-	return outputs[i];
-}
-
-dml::Expression& MLOP::Intermediate(size_t i)
-{
-	if (intermediates.size() <= i)
-		throw;
-	return intermediates[i];
-}
-
-
-
-MLOP& MLOP::AddInput(dml::TensorDesc td)
-{
-	auto expr = dml::InputTensor(*graph, (uint32_t)inputs.size(), td);
-	MLBUFFER in;
-	in.Create(d3D12Device, expr);
-	inputs.emplace_back(in);
+	MLOP_ITEM item;
+	item.tag = tag;
+	item.InputTensorTag = nit;
+	item.BindingMode = Binding;
+	item.expr = expr;
+	if (NewBuffer)
+	{
+		item.buffer = MLBUFFER();
+		item.buffer->Create(d3D12Device, expr);
+	}
+	if (bds)
+		item.bds = *bds;
+	items.push_back(item);
 	return *this;
+
 }
 
-
-MLOP& MLOP::AddIntermediate(dml::Expression td)
+MLOP& MLOP::AddIntermediate(dml::Expression td, LPARAM tag)
 {
-	intermediates.push_back(td);
-	return *this;
+	return AddItem(td, tag, 0, 0, 0, 0);
 }
 
-MLOP& MLOP::AddOutput(dml::Expression e)
+
+MLOP& MLOP::AddOutput(dml::Expression td, LPARAM tag)
 {
-	MLBUFFER out1;
-	out1.Create(d3D12Device, e);
-	outputs.push_back(out1);
-	return *this;
+	return AddItem(td, tag, true, 2, 0, 0);
 }
 
-
-MLOP& MLOP::AddToOutput(MLBUFFER& out)
+MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer,int Binding, DML_BINDING_DESC* bds)
 {
-	outputs2.push_back(out.ee);
-	return *this;
+	uint32_t na = 0;
+	for (auto& it : items)
+	{
+		if (it.InputTensorTag > 0)
+			na = std::max(na, it.InputTensorTag);
+	}
+	auto expr = dml::InputTensor(*graph, na, td);
+	return AddItem(expr, tag, NewBuffer, Binding, bds,na + 1);
 }
 
+
+MLOP_ITEM& MLOP::WithTag(LPARAM tag)
+{
+	for (auto& i : items)
+	{
+		if (i.tag == tag)
+			return i;
+	}
+	throw;
+}
 
 
 MLOP& MLOP::Build()
 {
-	for (auto& i : inputs)
-		bindings_in.push_back(i.BindingDesc());
-	for (auto& i : outputs)
-		bindings_out.push_back(i.BindingDesc());
+	// Inputs
+	for (auto& i : items)
+	{
+		if (i.BindingMode == 1)
+			bindings_in.push_back(i);
+	}
 
+	// Outputs
+	for (auto& i : items)
+	{
+		if (i.BindingMode == 2)
+			bindings_out.push_back(i);
+	}
+
+
+	std::vector<dml::Expression> outputs2;
+	for (auto& o : items)
+	{
+		if (o.BindingMode == 2 && o.buffer)
+			outputs2.push_back(o);
+	}
 	auto OutputCompiledOperator2 = graph->Compile(DML_EXECUTION_FLAG_ALLOW_HALF_PRECISION_COMPUTATION, outputs2);
 	bindings_in = bindings_in;
 	bindings_out = bindings_out;
