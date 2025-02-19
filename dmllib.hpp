@@ -116,6 +116,7 @@ private:
 	void tape();
 	HRESULT CreateInitializer(IDMLDevice* dmlDevice);
 
+	void Bind();
 	void TransitionBindings(ID3D12GraphicsCommandList* commandList);
 	bool ResetToExecute();
 	UINT FindDescriptorCount();

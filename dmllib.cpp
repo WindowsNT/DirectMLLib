@@ -167,6 +167,26 @@ void MLOP::TransitionBindings(ID3D12GraphicsCommandList* commandList)
 	}
 }
 
+void MLOP::Bind()
+{
+	std::vector< DML_BINDING_DESC> bin;
+	std::vector< DML_BINDING_DESC> bout;
+	for (auto& it : items)
+	{
+		if (it.BindingMode == BINDING_MODE::BIND_IN)
+		{
+			auto buffd = it.operator DML_BINDING_DESC();
+			bin.push_back(buffd);
+		}
+		if (it.BindingMode == BINDING_MODE::BIND_OUT)
+		{
+			auto buffd = it.operator DML_BINDING_DESC();
+			bout.push_back(buffd);
+		}
+	}
+	dmlBindingTable->BindInputs((UINT)bin.size(), bin.data());
+	dmlBindingTable->BindOutputs((UINT)bout.size(), bout.data());
+}
 
 void MLOP::tapi()
 {
@@ -293,23 +313,7 @@ void ML::Run(size_t which)
 		// Binding
 		if (1)
 		{
-			std::vector< DML_BINDING_DESC> bin;
-			std::vector< DML_BINDING_DESC> bout;
-			for (auto& it : op.items)
-			{
-				if (it.BindingMode == BINDING_MODE::BIND_IN)
-				{
-					auto buffd = it.operator DML_BINDING_DESC();
-					bin.push_back(buffd);
-				}
-				if (it.BindingMode == BINDING_MODE::BIND_OUT)
-				{
-					auto buffd = it.operator DML_BINDING_DESC();
-					bout.push_back(buffd);
-				}
-			}
-			op.dmlBindingTable->BindInputs((UINT)bin.size(), bin.data());
-			op.dmlBindingTable->BindOutputs((UINT)bout.size(), bout.data());
+			op.Bind();
 		}
 		else
 		{
