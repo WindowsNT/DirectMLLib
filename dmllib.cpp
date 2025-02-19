@@ -496,10 +496,10 @@ HRESULT ML::InitializeDirect3D12()
 }
 
 
-MLOP::MLOP(ID3D12Device* d3D12Device, IDMLDevice* dml)
+MLOP::MLOP(ID3D12Device* _d3D12Device, dml::Graph* gr)
 {
-	this->d3D12Device = d3D12Device;
-	graph = std::make_shared<dml::Graph>(dml);
+	graph = gr;
+	d3D12Device = _d3D12Device;
 }
 
 

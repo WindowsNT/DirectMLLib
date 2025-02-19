@@ -100,7 +100,7 @@ private:
 	friend class ML;
 	friend class NN;
 
-	std::shared_ptr<dml::Graph> graph;
+	dml::Graph* graph = 0;
 	ID3D12Device* d3D12Device = 0;
 	std::vector<DML_BINDING_DESC> bindings_in;
 	std::vector<DML_BINDING_DESC> bindings_out;
@@ -128,7 +128,7 @@ public:
 
 
 
-	MLOP(ID3D12Device* d3D12Device = 0, IDMLDevice* dml = 0);
+	MLOP(ID3D12Device* d3D12Device, dml::Graph* gr);
 	MLOP_ITEM& Item(size_t i);
 	MLOP_ITEM& WithTag(LPARAM tag);
 

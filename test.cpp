@@ -14,7 +14,8 @@ int main()
 
 
 
-	MLOP op1(ml.d3D12Device, ml.dmlDevice);
+	dml::Graph gr(ml.dmlDevice);
+	MLOP op1(ml.d3D12Device,&gr);
 	op1.
 		AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 100,100} }).
 		AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 100,100} }).
