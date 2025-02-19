@@ -13,11 +13,10 @@ int main()
 		return 0;
 
 
-
 	MLOP op1(&ml);
 	op1.
-		AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 100,100} }).
-		AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 100,100} }).
+		AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 10,10} }).
+		AddInput({ DML_TENSOR_DATA_TYPE_FLOAT32, { 10,10} }).
 		AddIntermediate(dml::Sin(op1.Item(0))).
 		AddIntermediate(dml::Cos(op1.Item(2))).
 		AddOutput(dml::Add(op1.Item(3), op1.Item(1)));

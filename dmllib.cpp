@@ -154,16 +154,14 @@ bool MLOP::CreateBindingTable(IDMLDevice* dmlDevice, ID3D12DescriptorHeap* descr
 void MLOP::TransitionBindings(ID3D12GraphicsCommandList* commandList)
 {
 	// Transition of the buffers
-	for (auto& bu : bindings_in)
+	for (auto& it : items)
 	{
-		auto buff = ((DML_BUFFER_BINDING*)bu.Desc)->Buffer;
-
-		auto x = CD3DX12_RESOURCE_BARRIER::Transition(buff, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		commandList->ResourceBarrier(1, &x);
-	}
-	for (auto& bu : bindings_out)
-	{
-		auto buff = ((DML_BUFFER_BINDING*)bu.Desc)->Buffer;
+		if (it.BindingMode == BINDING_MODE::NONE)
+			continue;
+		auto buffd = it.operator DML_BINDING_DESC();
+		auto buff = ((DML_BUFFER_BINDING*)buffd.Desc)->Buffer;
+		if (!buff)
+			continue;
 		auto x = CD3DX12_RESOURCE_BARRIER::Transition(buff, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		commandList->ResourceBarrier(1, &x);
 	}
@@ -293,8 +291,31 @@ void ML::Run(size_t which)
 		op.TransitionBindings(commandList);
 
 		// Binding
-		op.dmlBindingTable->BindInputs((UINT)op.bindings_in.size(), op.bindings_in.data());
-		op.dmlBindingTable->BindOutputs((UINT)op.bindings_out.size(), op.bindings_out.data());
+		if (1)
+		{
+			std::vector< DML_BINDING_DESC> bin;
+			std::vector< DML_BINDING_DESC> bout;
+			for (auto& it : op.items)
+			{
+				if (it.BindingMode == BINDING_MODE::BIND_IN)
+				{
+					auto buffd = it.operator DML_BINDING_DESC();
+					bin.push_back(buffd);
+				}
+				if (it.BindingMode == BINDING_MODE::BIND_OUT)
+				{
+					auto buffd = it.operator DML_BINDING_DESC();
+					bout.push_back(buffd);
+				}
+			}
+			op.dmlBindingTable->BindInputs((UINT)bin.size(), bin.data());
+			op.dmlBindingTable->BindOutputs((UINT)bout.size(), bout.data());
+		}
+		else
+		{
+//			op.dmlBindingTable->BindInputs((UINT)op.bindings_in.size(), op.bindings_in.data());
+//			op.dmlBindingTable->BindOutputs((UINT)op.bindings_out.size(), op.bindings_out.data());
+		}
 
 		// And temporary/persistent resources
 		op.tape();
@@ -571,6 +592,7 @@ MLOP_ITEM& MLOP::WithTag(LPARAM tag)
 MLOP& MLOP::Build()
 {
 	// Inputs
+	/*
 	for (auto& i : items)
 	{
 		if (i.BindingMode == BINDING_MODE::BIND_IN)
@@ -583,7 +605,7 @@ MLOP& MLOP::Build()
 		if (i.BindingMode == BINDING_MODE::BIND_OUT)
 			bindings_out.push_back(i);
 	}
-
+	*/
 
 	std::vector<dml::Expression> outputs2;
 	for (auto& o : items)
@@ -592,8 +614,6 @@ MLOP& MLOP::Build()
 			outputs2.push_back(o);
 	}
 	auto OutputCompiledOperator2 = graph->Compile(DML_EXECUTION_FLAG_ALLOW_HALF_PRECISION_COMPUTATION, outputs2);
-	bindings_in = bindings_in;
-	bindings_out = bindings_out;
 	dmlCompiledOperator.Attach(OutputCompiledOperator2.Detach());
 	return *this;
 }

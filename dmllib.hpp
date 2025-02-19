@@ -102,8 +102,8 @@ private:
 
 	std::shared_ptr<dml::Graph> graph;
 	ML* ml = 0;
-	std::vector<DML_BINDING_DESC> bindings_in;
-	std::vector<DML_BINDING_DESC> bindings_out;
+//	std::vector<DML_BINDING_DESC> bindings_in;
+//	std::vector<DML_BINDING_DESC> bindings_out;
 
 	CComPtr<IDMLCompiledOperator> dmlCompiledOperator;
 	CComPtr<IDMLOperatorInitializer> dmlOperatorInitializer;
