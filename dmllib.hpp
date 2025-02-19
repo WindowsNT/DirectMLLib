@@ -157,6 +157,7 @@ public:
 	CComPtr<IDMLCommandRecorder> dmlCommandRecorder;
 	DML_BINDING_PROPERTIES initializeBindingProperties = {}, executeBindingProperties = {};
 	CComPtr<ID3D12DescriptorHeap> descriptorHeap;
+	std::shared_ptr<dml::Graph> graph;
 
 	ML(bool dbg = 0);
 	HRESULT On();

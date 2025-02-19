@@ -421,6 +421,8 @@ HRESULT ML::On()
 	hr = CreateDML();
 	if (FAILED(hr))
 		return hr;
+
+	graph = std::make_shared<dml::Graph>(dmlDevice);
 	return S_OK;
 }
 
