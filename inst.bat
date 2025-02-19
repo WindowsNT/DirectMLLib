@@ -9,3 +9,7 @@ call clbcall
 call clbcall
 del "Generated Files"\* /s /q 
 del packages\* /s /q
+
+git add *
+git commit -m "API"
+git push

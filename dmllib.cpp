@@ -511,7 +511,7 @@ MLOP_ITEM& MLOP::Item(size_t i)
 	return items[i];
 }
 
-MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, int Binding, DML_BINDING_DESC* bds, uint32_t nit)
+MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, DML_BINDING_DESC* bds, uint32_t nit)
 {
 	MLOP_ITEM item;
 	item.tag = tag;
@@ -532,16 +532,16 @@ MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, int Bindin
 
 MLOP& MLOP::AddIntermediate(dml::Expression td, LPARAM tag)
 {
-	return AddItem(td, tag, 0, 0, 0, 0);
+	return AddItem(td, tag, 0, BINDING_MODE::NONE, 0, 0);
 }
 
 
 MLOP& MLOP::AddOutput(dml::Expression td, LPARAM tag)
 {
-	return AddItem(td, tag, true, 2, 0, 0);
+	return AddItem(td, tag, true, BINDING_MODE::BIND_OUT, 0, 0);
 }
 
-MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer,int Binding, DML_BINDING_DESC* bds)
+MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, DML_BINDING_DESC* bds)
 {
 	uint32_t na = 0;
 	for (auto& it : items)
@@ -570,14 +570,14 @@ MLOP& MLOP::Build()
 	// Inputs
 	for (auto& i : items)
 	{
-		if (i.BindingMode == 1)
+		if (i.BindingMode == BINDING_MODE::BIND_IN)
 			bindings_in.push_back(i);
 	}
 
 	// Outputs
 	for (auto& i : items)
 	{
-		if (i.BindingMode == 2)
+		if (i.BindingMode == BINDING_MODE::BIND_OUT)
 			bindings_out.push_back(i);
 	}
 
@@ -585,7 +585,7 @@ MLOP& MLOP::Build()
 	std::vector<dml::Expression> outputs2;
 	for (auto& o : items)
 	{
-		if (o.BindingMode == 2 && o.buffer)
+		if (o.BindingMode == BINDING_MODE::BIND_OUT && o.buffer)
 			outputs2.push_back(o);
 	}
 	auto OutputCompiledOperator2 = graph->Compile(DML_EXECUTION_FLAG_ALLOW_HALF_PRECISION_COMPUTATION, outputs2);
