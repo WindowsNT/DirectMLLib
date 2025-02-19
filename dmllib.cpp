@@ -511,7 +511,7 @@ MLOP_ITEM& MLOP::Item(size_t i)
 	return items[i];
 }
 
-MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, DML_BINDING_DESC* bds, uint32_t nit)
+MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<DML_BINDING_DESC> bds, uint32_t nit)
 {
 	MLOP_ITEM item;
 	item.tag = tag;
@@ -523,8 +523,7 @@ MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MO
 		item.buffer = MLBUFFER();
 		item.buffer->Create(d3D12Device, expr);
 	}
-	if (bds)
-		item.bds = *bds;
+	item.bds = bds;
 	items.push_back(item);
 	return *this;
 
@@ -532,16 +531,16 @@ MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MO
 
 MLOP& MLOP::AddIntermediate(dml::Expression td, LPARAM tag)
 {
-	return AddItem(td, tag, 0, BINDING_MODE::NONE, 0, 0);
+	return AddItem(td, tag, 0, BINDING_MODE::NONE, {}, 0);
 }
 
 
 MLOP& MLOP::AddOutput(dml::Expression td, LPARAM tag)
 {
-	return AddItem(td, tag, true, BINDING_MODE::BIND_OUT, 0, 0);
+	return AddItem(td, tag, true, BINDING_MODE::BIND_OUT, {}, 0);
 }
 
-MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, DML_BINDING_DESC* bds)
+MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<DML_BINDING_DESC> bds)
 {
 	uint32_t na = 0;
 	for (auto& it : items)

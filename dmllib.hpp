@@ -132,14 +132,14 @@ public:
 	MLOP_ITEM& Item(size_t i);
 	MLOP_ITEM& WithTag(LPARAM tag);
 
-	MLOP& AddInput(dml::TensorDesc td, LPARAM tag = 0, bool NewBuffer = 1, BINDING_MODE Binding = BINDING_MODE::BIND_IN, DML_BINDING_DESC* bds = 0);
-	MLOP& AddItem(dml::Expression td, LPARAM tag = 0, bool NewBuffer = 0, BINDING_MODE Binding = BINDING_MODE::NONE, DML_BINDING_DESC* bds = 0, uint32_t nit = 0);
+	MLOP& AddInput(dml::TensorDesc td, LPARAM tag = 0, bool NewBuffer = 1, BINDING_MODE Binding = BINDING_MODE::BIND_IN, std::optional<DML_BINDING_DESC> bds = {});
+	MLOP& AddItem(dml::Expression td, LPARAM tag = 0, bool NewBuffer = 0, BINDING_MODE Binding = BINDING_MODE::NONE, std::optional<DML_BINDING_DESC> bds = {}, uint32_t nit = 0);
 	MLOP& AddIntermediate(dml::Expression td, LPARAM tag = 0);
 	MLOP& AddOutput(dml::Expression td, LPARAM tag = 0);
 
 	MLOP& Build();
 
-
+		
 };
 
 class ML
