@@ -396,10 +396,9 @@ HRESULT ML::CreateDML()
 	if (dmlDevice)
 		return S_FALSE;
 	DML_CREATE_DEVICE_FLAGS dmlCreateDeviceFlags = DML_CREATE_DEVICE_FLAG_NONE;
-#if defined (_DEBUG)
-#ifdef DEBUGML
-	dmlCreateDeviceFlags |= DML_CREATE_DEVICE_FLAG_DEBUG;
-#endif
+#ifdef _DEBUG
+	if (Debug)
+		dmlCreateDeviceFlags |= DML_CREATE_DEVICE_FLAG_DEBUG;
 #endif
 	DMLCreateDevice(d3D12Device, dmlCreateDeviceFlags, IID_PPV_ARGS(&dmlDevice));
 	if (!dmlDevice)
@@ -408,6 +407,11 @@ HRESULT ML::CreateDML()
 	return S_OK;
 }
 
+
+ML::ML(bool dbg)
+{
+	Debug = dbg;
+}
 
 HRESULT ML::On()
 {
@@ -426,14 +430,14 @@ HRESULT ML::InitializeDirect3D12()
 	if (d3D12Device)
 		return S_FALSE;
 
-	// Throws if the D3D12 debug layer is missing - you must install the Graphics Tools optional feature
-#if defined (_DEBUG)
-#ifdef DEBUGML
-	CComPtr<ID3D12Debug> d3D12Debug;
-	D3D12GetDebugInterface(IID_PPV_ARGS(&d3D12Debug));
-	if (d3D12Debug)
-		d3D12Debug->EnableDebugLayer();
-#endif
+#ifdef _DEBUG
+	if (Debug)
+	{
+		CComPtr<ID3D12Debug> d3D12Debug;
+		D3D12GetDebugInterface(IID_PPV_ARGS(&d3D12Debug));
+		if (d3D12Debug)
+			d3D12Debug->EnableDebugLayer();
+	}
 #endif
 
 	CComPtr<IDXGIFactory4> dxgiFactory;
@@ -492,27 +496,28 @@ HRESULT ML::InitializeDirect3D12()
 }
 
 
-DMLOPBUILDER::DMLOPBUILDER(ID3D12Device* d3D12Device, IDMLDevice* dml) : graph(dml)
+MLOP::MLOP(ID3D12Device* d3D12Device, IDMLDevice* dml)
 {
 	this->d3D12Device = d3D12Device;
+	graph = std::make_shared<dml::Graph>(dml);
 }
 
 
-MLBUFFER& DMLOPBUILDER::Input(size_t i)
+MLBUFFER& MLOP::Input(size_t i)
 {
 	if (inputs.size() <= i)
 		throw;
 	return inputs[i];
 }
 
-MLBUFFER& DMLOPBUILDER::Output(size_t i)
+MLBUFFER& MLOP::Output(size_t i)
 {
 	if (outputs.size() <= i)
 		throw;
 	return outputs[i];
 }
 
-dml::Expression& DMLOPBUILDER::Intermediate(size_t i)
+dml::Expression& MLOP::Intermediate(size_t i)
 {
 	if (intermediates.size() <= i)
 		throw;
@@ -521,9 +526,9 @@ dml::Expression& DMLOPBUILDER::Intermediate(size_t i)
 
 
 
-DMLOPBUILDER& DMLOPBUILDER::AddInput(dml::TensorDesc td)
+MLOP& MLOP::AddInput(dml::TensorDesc td)
 {
-	auto expr = dml::InputTensor(graph, (uint32_t)inputs.size(), td);
+	auto expr = dml::InputTensor(*graph, (uint32_t)inputs.size(), td);
 	MLBUFFER in;
 	in.Create(d3D12Device, expr);
 	inputs.emplace_back(in);
@@ -531,13 +536,13 @@ DMLOPBUILDER& DMLOPBUILDER::AddInput(dml::TensorDesc td)
 }
 
 
-DMLOPBUILDER& DMLOPBUILDER::AddIntermediate(dml::Expression td)
+MLOP& MLOP::AddIntermediate(dml::Expression td)
 {
 	intermediates.push_back(td);
 	return *this;
 }
 
-DMLOPBUILDER& DMLOPBUILDER::AddOutput(dml::Expression e)
+MLOP& MLOP::AddOutput(dml::Expression e)
 {
 	MLBUFFER out1;
 	out1.Create(d3D12Device, e);
@@ -546,7 +551,7 @@ DMLOPBUILDER& DMLOPBUILDER::AddOutput(dml::Expression e)
 }
 
 
-DMLOPBUILDER& DMLOPBUILDER::AddToOutput(MLBUFFER& out)
+MLOP& MLOP::AddToOutput(MLBUFFER& out)
 {
 	outputs2.push_back(out.ee);
 	return *this;
@@ -554,16 +559,16 @@ DMLOPBUILDER& DMLOPBUILDER::AddToOutput(MLBUFFER& out)
 
 
 
-MLOP& DMLOPBUILDER::Build()
+MLOP& MLOP::Build()
 {
 	for (auto& i : inputs)
 		bindings_in.push_back(i.BindingDesc());
 	for (auto& i : outputs)
 		bindings_out.push_back(i.BindingDesc());
 
-	auto OutputCompiledOperator2 = graph.Compile(DML_EXECUTION_FLAG_ALLOW_HALF_PRECISION_COMPUTATION, outputs2);
-	mlop.bindings_in = bindings_in;
-	mlop.bindings_out = bindings_out;
-	mlop.dmlCompiledOperator.Attach(OutputCompiledOperator2.Detach());
-	return mlop;
+	auto OutputCompiledOperator2 = graph->Compile(DML_EXECUTION_FLAG_ALLOW_HALF_PRECISION_COMPUTATION, outputs2);
+	bindings_in = bindings_in;
+	bindings_out = bindings_out;
+	dmlCompiledOperator.Attach(OutputCompiledOperator2.Detach());
+	return *this;
 }

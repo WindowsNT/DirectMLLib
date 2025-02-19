@@ -1,6 +1,5 @@
 //
 
-#define DEBUGML
 
 class ML;
 
@@ -56,9 +55,6 @@ struct MLOP
 	CComPtr<IDMLOperatorInitializer> dmlOperatorInitializer;
 
 
-	std::vector<DML_BINDING_DESC> bindings_in;
-	std::vector<DML_BINDING_DESC> bindings_out;
-
 
 	DML_BINDING_TABLE_DESC dmlBindingTableDesc{};
 	CComPtr<IDMLBindingTable> dmlBindingTable;
@@ -76,13 +72,35 @@ struct MLOP
 	MLBUFFER tri, tre, pri, pre;
 
 
+	std::shared_ptr<dml::Graph> graph;
+	ID3D12Device* d3D12Device = 0;
+	std::vector<MLBUFFER> inputs;
+	std::vector<MLBUFFER> outputs;
+	std::vector<dml::Expression> intermediates;
+	std::vector<DML_BINDING_DESC> bindings_in;
+	std::vector<DML_BINDING_DESC> bindings_out;
+	std::vector<dml::Expression> outputs2;
 
+
+	MLOP(ID3D12Device* d3D12Device, IDMLDevice* dml);
+	MLBUFFER& Input(size_t i);
+	MLBUFFER& Output(size_t i);
+	dml::Expression& Intermediate(size_t i);
+	MLOP& AddInput(dml::TensorDesc td);
+	MLOP& AddIntermediate(dml::Expression td);
+	MLOP& AddOutput(dml::Expression e);
+	MLOP& AddToOutput(MLBUFFER& out);
+	MLOP& Build();
 
 
 };
 
 class ML
 {
+private:
+
+	bool Debug = 0;
+
 public:
 	CComPtr<ID3D12Device> d3D12Device;
 	CComPtr<IDMLDevice> dmlDevice;
@@ -93,6 +111,7 @@ public:
 	DML_BINDING_PROPERTIES initializeBindingProperties = {}, executeBindingProperties = {};
 	CComPtr<ID3D12DescriptorHeap> descriptorHeap;
 
+	ML(bool dbg = 0);
 	HRESULT On();
 	HRESULT InitializeDirect3D12();
 	HRESULT CreateDML();
@@ -109,37 +128,4 @@ public:
 
 };
 
-
-
-class DMLOPBUILDER
-{
-	private:
-	
-		dml::Graph graph;
-		ID3D12Device* d3D12Device = 0;
-		std::vector<MLBUFFER> inputs;
-		std::vector<MLBUFFER> outputs;
-		std::vector<dml::Expression> intermediates;
-		std::vector<DML_BINDING_DESC> bindings_in;
-		std::vector<DML_BINDING_DESC> bindings_out;
-		std::vector<dml::Expression> outputs2;
-		MLOP mlop;
-
-
-
-	public:
-
-		DMLOPBUILDER(ID3D12Device* d3D12Device, IDMLDevice* dml);
-		MLBUFFER& Input(size_t i);
-		MLBUFFER& Output(size_t i);
-		dml::Expression& Intermediate(size_t i);
-		DMLOPBUILDER& AddInput(dml::TensorDesc td);
-		DMLOPBUILDER& AddIntermediate(dml::Expression td);
-		DMLOPBUILDER& AddOutput(dml::Expression e);
-		DMLOPBUILDER& AddToOutput(MLBUFFER& out);
-		MLOP& Build();
-
-
-
-};
 
