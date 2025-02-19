@@ -128,7 +128,7 @@ public:
 
 
 
-	MLOP(ID3D12Device* d3D12Device, dml::Graph* gr);
+	MLOP(ID3D12Device* d3D12Device = 0, dml::Graph* gr = 0);
 	MLOP_ITEM& Item(size_t i);
 	MLOP_ITEM& WithTag(LPARAM tag);
 

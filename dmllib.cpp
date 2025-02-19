@@ -404,6 +404,7 @@ HRESULT ML::CreateDML()
 	if (!dmlDevice)
 		return E_FAIL;
 
+	graph = std::make_shared<dml::Graph>(dmlDevice);
 	return S_OK;
 }
 
@@ -422,7 +423,6 @@ HRESULT ML::On()
 	if (FAILED(hr))
 		return hr;
 
-	graph = std::make_shared<dml::Graph>(dmlDevice);
 	return S_OK;
 }
 
