@@ -165,6 +165,25 @@ void MLOP::TransitionBindings(ID3D12GraphicsCommandList* commandList)
 		auto x = CD3DX12_RESOURCE_BARRIER::Transition(buff, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		commandList->ResourceBarrier(1, &x);
 	}
+
+	if (items.empty())
+	{
+		// Transition of the buffers
+		for (auto& bu : bindings_in)
+		{
+			auto buff = ((DML_BUFFER_BINDING*)bu.Desc)->Buffer;
+
+			auto x = CD3DX12_RESOURCE_BARRIER::Transition(buff, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			commandList->ResourceBarrier(1, &x);
+		}
+		for (auto& bu : bindings_out)
+		{
+			auto buff = ((DML_BUFFER_BINDING*)bu.Desc)->Buffer;
+			auto x = CD3DX12_RESOURCE_BARRIER::Transition(buff, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			commandList->ResourceBarrier(1, &x);
+		}
+
+	}
 }
 
 void MLOP::Bind()
@@ -184,6 +203,13 @@ void MLOP::Bind()
 			bout.push_back(buffd);
 		}
 	}
+	if (bin.size() == 0 && bout.size() == 0)
+	{
+		bin = bindings_in;
+		bout = bindings_out;
+	}
+
+
 	dmlBindingTable->BindInputs((UINT)bin.size(), bin.data());
 	dmlBindingTable->BindOutputs((UINT)bout.size(), bout.data());
 }
@@ -540,7 +566,7 @@ MLOP_ITEM& MLOP::Item(size_t i)
 	return items[i];
 }
 
-MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<DML_BINDING_DESC> bds, uint32_t nit)
+MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<MLRESOURCEANDSIZE> bds, uint32_t nit)
 {
 	MLOP_ITEM item;
 	item.tag = tag;
@@ -569,7 +595,7 @@ MLOP& MLOP::AddOutput(dml::Expression td, LPARAM tag)
 	return AddItem(td, tag, true, BINDING_MODE::BIND_OUT, {}, 0);
 }
 
-MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<DML_BINDING_DESC> bds)
+MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<MLRESOURCEANDSIZE> bds)
 {
 	uint32_t na = 0;
 	for (auto& it : items)
@@ -581,6 +607,16 @@ MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer, BINDING_MOD
 	return AddItem(expr, tag, NewBuffer, Binding, bds,na + 1);
 }
 
+
+MLOP_ITEM* MLOP::WithTag2(LPARAM tag)
+{
+	for (auto& i : items)
+	{
+		if (i.tag == tag)
+			return &i;
+	}
+	return nullptr;
+}
 
 MLOP_ITEM& MLOP::WithTag(LPARAM tag)
 {

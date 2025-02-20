@@ -42,7 +42,7 @@ int main()
 		std::vector<char> cdata(400);
 		op1.Item(4).buffer->Download(&ml, 400, cdata);
 		memcpy(fdata.data(), cdata.data(), 400);
-	}
+		}
 
 }
 

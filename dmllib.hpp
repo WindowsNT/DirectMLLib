@@ -74,19 +74,30 @@ struct MLOP_ITEM
 	
 	std::optional<MLBUFFER> buffer;
 	dml::Expression expr;
-	std::optional<DML_BINDING_DESC> bds;
+	std::optional<MLRESOURCEANDSIZE> bds;
 
 	operator dml::Expression()
 	{
 		return expr;
 	}
 
+
+	// Cache
+	DML_BINDING_DESC dbd = {};
+	DML_BUFFER_BINDING dmb = {};
 	operator DML_BINDING_DESC ()
 	{
 		if (buffer)
 			return buffer->BindingDesc();
 		if (bds)
-			return *bds;
+		{
+			dmb.Buffer = bds->b;
+			dmb.Offset = 0;
+			dmb.SizeInBytes = bds->ls;
+			dbd.Type = DML_BINDING_TYPE_BUFFER;
+			dbd.Desc = &dmb;
+			return dbd;
+		}
 		throw;
 	}
 
@@ -102,8 +113,10 @@ private:
 
 	std::shared_ptr<dml::Graph> graph;
 	ML* ml = 0;
-//	std::vector<DML_BINDING_DESC> bindings_in;
-//	std::vector<DML_BINDING_DESC> bindings_out;
+
+
+	std::vector<DML_BINDING_DESC> bindings_in;
+	std::vector<DML_BINDING_DESC> bindings_out;
 
 	CComPtr<IDMLCompiledOperator> dmlCompiledOperator;
 	CComPtr<IDMLOperatorInitializer> dmlOperatorInitializer;
@@ -132,9 +145,10 @@ public:
 	MLOP(ML* ml);
 	MLOP_ITEM& Item(size_t i);
 	MLOP_ITEM& WithTag(LPARAM tag);
+	MLOP_ITEM* WithTag2(LPARAM tag);
 
-	MLOP& AddInput(dml::TensorDesc td, LPARAM tag = 0, bool NewBuffer = 1, BINDING_MODE Binding = BINDING_MODE::BIND_IN, std::optional<DML_BINDING_DESC> bds = {});
-	MLOP& AddItem(dml::Expression td, LPARAM tag = 0, bool NewBuffer = 0, BINDING_MODE Binding = BINDING_MODE::NONE, std::optional<DML_BINDING_DESC> bds = {}, uint32_t nit = 0);
+	MLOP& AddInput(dml::TensorDesc td, LPARAM tag = 0, bool NewBuffer = 1, BINDING_MODE Binding = BINDING_MODE::BIND_IN, std::optional<MLRESOURCEANDSIZE> bds = {});
+	MLOP& AddItem(dml::Expression td, LPARAM tag = 0, bool NewBuffer = 0, BINDING_MODE Binding = BINDING_MODE::NONE, std::optional<MLRESOURCEANDSIZE> bds = {}, uint32_t nit = 0);
 	MLOP& AddIntermediate(dml::Expression td, LPARAM tag = 0);
 	MLOP& AddOutput(dml::Expression td, LPARAM tag = 0);
 
