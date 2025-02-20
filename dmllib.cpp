@@ -568,6 +568,8 @@ MLOP_ITEM& MLOP::Item(size_t i)
 
 MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<MLRESOURCEANDSIZE> bds, uint32_t nit)
 {
+	if (tag != 0 && WithTag2(tag))
+		throw;
 	MLOP_ITEM item;
 	item.tag = tag;
 	item.InputTensorTag = nit;
