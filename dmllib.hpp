@@ -3,20 +3,29 @@
 
 class ML;
 
-struct MLRESOURCEANDSIZE
+struct MLRESOURCE
 {
 	CComPtr<ID3D12Resource> b = 0;
-	size_t ls = 0;
+//	size_t ls = 0;
+
+	size_t sz()
+	{
+		if (!b)
+			return 0;
+	//	return ls;
+		auto de = b->GetDesc();
+		return de.Width;
+	}
 
 	operator bool()
 	{
-		return b && ls;
+		return b && sz();
 	}
 };
 
 struct MLBUFFER
 {
-	MLRESOURCEANDSIZE b;
+	MLRESOURCE b;
 	LPARAM Tag = 0;
 
 	static unsigned long long TensorSizeAlign(unsigned long long t)
@@ -74,7 +83,7 @@ struct MLOP_ITEM
 	
 	std::optional<MLBUFFER> buffer;
 	dml::Expression expr;
-	std::optional<MLRESOURCEANDSIZE> bds;
+	std::optional<MLRESOURCE> bds;
 
 	operator dml::Expression()
 	{
@@ -93,7 +102,7 @@ struct MLOP_ITEM
 		{
 			dmb.Buffer = bds->b;
 			dmb.Offset = 0;
-			dmb.SizeInBytes = bds->ls;
+			dmb.SizeInBytes = bds->sz();
 			dbd.Type = DML_BINDING_TYPE_BUFFER;
 			dbd.Desc = &dmb;
 			return dbd;
@@ -147,8 +156,8 @@ public:
 	MLOP_ITEM& WithTag(LPARAM tag);
 	MLOP_ITEM* WithTag2(LPARAM tag);
 
-	MLOP& AddInput(dml::TensorDesc td, LPARAM tag = 0, bool NewBuffer = 1, BINDING_MODE Binding = BINDING_MODE::BIND_IN, std::optional<MLRESOURCEANDSIZE> bds = {});
-	MLOP& AddItem(dml::Expression td, LPARAM tag = 0, bool NewBuffer = 0, BINDING_MODE Binding = BINDING_MODE::NONE, std::optional<MLRESOURCEANDSIZE> bds = {}, uint32_t nit = 0);
+	MLOP& AddInput(dml::TensorDesc td, LPARAM tag = 0, bool NewBuffer = 1, BINDING_MODE Binding = BINDING_MODE::BIND_IN, std::optional<MLRESOURCE> bds = {});
+	MLOP& AddItem(dml::Expression td, LPARAM tag = 0, bool NewBuffer = 0, BINDING_MODE Binding = BINDING_MODE::NONE, std::optional<MLRESOURCE> bds = {}, uint32_t nit = 0);
 	MLOP& AddIntermediate(dml::Expression td, LPARAM tag = 0);
 	MLOP& AddOutput(dml::Expression td, LPARAM tag = 0);
 

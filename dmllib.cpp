@@ -9,7 +9,7 @@ DML_BINDING_DESC MLBUFFER::BindingDesc()
 	DML_BINDING_DESC dbd = {};
 	dmb.Buffer = b.b;
 	dmb.Offset = 0;
-	dmb.SizeInBytes = b.ls;
+	dmb.SizeInBytes = b.sz();
 	dbd.Type = DML_BINDING_TYPE_BUFFER;
 	dbd.Desc = &dmb;
 	return dbd;
@@ -24,9 +24,9 @@ DML_BINDING_DESC MLBUFFER::BindingDesc()
 HRESULT MLBUFFER::Create2(ID3D12Device* d3D12Device, size_t x, [[maybe_unused]] bool ForceInternal)
 {
 	b.b = 0;
-	b.ls = x;
+//	b.ls = x;
 	auto x1 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	auto x2 = CD3DX12_RESOURCE_DESC::Buffer(b.ls, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	auto x2 = CD3DX12_RESOURCE_DESC::Buffer(x, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	[[maybe_unused]] auto hr = d3D12Device->CreateCommittedResource(
 		&x1,
 		D3D12_HEAP_FLAG_NONE,
@@ -44,23 +44,24 @@ UINT64 MLBUFFER::Upload(ML* ml,void* data, size_t by)
 		return 0;
 	std::vector<char> bigger_data;
 
-	if (by != b.ls)
+	if (by != b.sz())
 	{
-		if (by > b.ls)
+		if (by > b.sz())
 		{
-
+			throw;
 		}
 		else
 		{
-			bigger_data.resize(b.ls);
+			bigger_data.resize(b.sz());
 			memcpy(bigger_data.data(), data, by);
 			data = bigger_data.data();
-			by = b.ls;
+			by = b.sz();
 		}
 	}
 
+
 	auto x1 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	auto x2 = CD3DX12_RESOURCE_DESC::Buffer(b.ls, D3D12_RESOURCE_FLAG_NONE);
+	auto x2 = CD3DX12_RESOURCE_DESC::Buffer(b.sz(), D3D12_RESOURCE_FLAG_NONE);
 	if (!uploadBuffer)
 	{
 		[[maybe_unused]] auto hr = ml->d3D12Device->CreateCommittedResource(
@@ -84,7 +85,7 @@ UINT64 MLBUFFER::Upload(ML* ml,void* data, size_t by)
 	tensorSubresourceData.RowPitch = static_cast<LONG_PTR>(by);
 	tensorSubresourceData.SlicePitch = tensorSubresourceData.RowPitch;
 
-	// Upload the input tensor to the GPU.
+	// Upload to the GPU.
 	auto rv = ::UpdateSubresources(ml->commandList, b.b, uploadBuffer, 0, 0, 1, &tensorSubresourceData);
 	return rv;
 }
@@ -242,7 +243,7 @@ HRESULT MLBUFFER::Download(ML* ml, size_t j, std::vector<char>& out)
 		return E_NOINTERFACE;
 
 	if (j == (size_t)-1)
-		j = b.ls;
+		j = b.sz();
 	CComPtr<ID3D12Resource> readbackBuffer;
 	auto x7 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
 	auto x8 = CD3DX12_RESOURCE_DESC::Buffer(j);
@@ -551,10 +552,7 @@ HRESULT ML::InitializeDirect3D12()
 MLOP::MLOP(ML* _ml)
 {
 	ml = _ml;
-	if (ml)
-	{
-		graph = std::make_shared<dml::Graph>(ml->dmlDevice.p);
-	}
+	graph = std::make_shared<dml::Graph>(ml->dmlDevice.p);
 }
 
 
@@ -566,7 +564,7 @@ MLOP_ITEM& MLOP::Item(size_t i)
 	return items[i];
 }
 
-MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<MLRESOURCEANDSIZE> bds, uint32_t nit)
+MLOP& MLOP::AddItem(dml::Expression expr, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<MLRESOURCE> bds, uint32_t nit)
 {
 	if (tag != 0 && WithTag2(tag))
 		throw;
@@ -597,7 +595,7 @@ MLOP& MLOP::AddOutput(dml::Expression td, LPARAM tag)
 	return AddItem(td, tag, true, BINDING_MODE::BIND_OUT, {}, 0);
 }
 
-MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<MLRESOURCEANDSIZE> bds)
+MLOP& MLOP::AddInput(dml::TensorDesc td, LPARAM tag, bool NewBuffer, BINDING_MODE Binding, std::optional<MLRESOURCE> bds)
 {
 	uint32_t na = 0;
 	for (auto& it : items)
