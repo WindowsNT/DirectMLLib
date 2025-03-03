@@ -8,6 +8,7 @@ int main()
 {
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	ML ml(true);
+	ml.SetFeatureLevel(DML_FEATURE_LEVEL_6_4);
 	auto hr = ml.On();
 	if (FAILED(hr))
 		return 0;

@@ -452,7 +452,7 @@ HRESULT ML::CreateDML()
 	if (Debug)
 		dmlCreateDeviceFlags |= DML_CREATE_DEVICE_FLAG_DEBUG;
 #endif
-	DMLCreateDevice(d3D12Device, dmlCreateDeviceFlags, IID_PPV_ARGS(&dmlDevice));
+	DMLCreateDevice1(d3D12Device, dmlCreateDeviceFlags, dmlMinFeatureLevel,IID_PPV_ARGS(&dmlDevice));
 	if (!dmlDevice)
 		return E_FAIL;
 

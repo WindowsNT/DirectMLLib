@@ -175,6 +175,7 @@ class ML
 private:
 
 	bool Debug = 0;
+	DML_FEATURE_LEVEL dmlMinFeatureLevel = DML_FEATURE_LEVEL_1_0;
 
 public:
 	CComPtr<ID3D12Device> d3D12Device;
@@ -189,6 +190,9 @@ public:
 	ML(bool dbg = 0);
 	void SetDebug(bool d) {
 		Debug = d;
+	}
+	void SetFeatureLevel(DML_FEATURE_LEVEL f) {
+		dmlMinFeatureLevel = f;
 	}
 	HRESULT On();
 	HRESULT InitializeDirect3D12();
