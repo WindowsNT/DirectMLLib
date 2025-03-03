@@ -150,7 +150,10 @@ public:
 
 
 
-
+	std::shared_ptr<dml::Graph> GetGraph()
+	{
+		return graph;
+	}
 	MLOP(ML* ml);
 	size_t Count();
 	MLOP_ITEM& Item(size_t i);
