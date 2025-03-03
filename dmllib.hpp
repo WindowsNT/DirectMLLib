@@ -1,5 +1,5 @@
 //
-
+#pragma once
 
 class ML;
 
@@ -152,6 +152,7 @@ public:
 
 
 	MLOP(ML* ml);
+	size_t Count();
 	MLOP_ITEM& Item(size_t i);
 	MLOP_ITEM& WithTag(LPARAM tag);
 	MLOP_ITEM* WithTag2(LPARAM tag);
