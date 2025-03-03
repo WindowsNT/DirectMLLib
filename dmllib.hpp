@@ -187,6 +187,9 @@ public:
 	CComPtr<ID3D12DescriptorHeap> descriptorHeap;
 
 	ML(bool dbg = 0);
+	void SetDebug(bool d) {
+		Debug = d;
+	}
 	HRESULT On();
 	HRESULT InitializeDirect3D12();
 	HRESULT CreateDML();
