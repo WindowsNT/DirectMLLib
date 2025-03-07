@@ -194,8 +194,8 @@ public:
 	void SetFeatureLevel(DML_FEATURE_LEVEL f) {
 		dmlMinFeatureLevel = f;
 	}
-	HRESULT On();
-	HRESULT InitializeDirect3D12();
+	HRESULT On(IDXGIAdapter* adapter = 0);
+	HRESULT InitializeDirect3D12(IDXGIAdapter* adapter = 0);
 	HRESULT CreateDML();
 	dml::Expression ConstantValueTensor(dml::Graph& graph, float what, dml::TensorDesc::Dimensions outputSizes);
 	HRESULT CreateCommandRecorder();

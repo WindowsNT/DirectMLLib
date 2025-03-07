@@ -93,6 +93,8 @@ UINT64 MLBUFFER::Upload(ML* ml,void* data, size_t by)
 
 void MLOP::tape()
 {
+	if (!dmlOperatorInitializer)
+		return;
 	auto bp = dmlCompiledOperator->GetBindingProperties();
 	if (bp.TemporaryResourceSize)
 	{
@@ -128,6 +130,8 @@ bool MLOP::ResetToExecute()
 
 UINT MLOP::FindDescriptorCount()
 {
+	if (!dmlOperatorInitializer)
+		return 0;
 	auto  initializeBindingProperties = dmlOperatorInitializer->GetBindingProperties();
 	auto executeBindingProperties = dmlCompiledOperator->GetBindingProperties();
 	descriptorCount = 0;
@@ -139,6 +143,8 @@ UINT MLOP::FindDescriptorCount()
 
 bool MLOP::CreateBindingTable(IDMLDevice* dmlDevice, ID3D12DescriptorHeap* descriptorHeap)
 {
+	if (!dmlDevice || !dmlOperatorInitializer)
+		return false;
 	dmlBindingTableDesc.Dispatchable = dmlOperatorInitializer;
 	dmlBindingTableDesc.CPUDescriptorHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	dmlBindingTableDesc.GPUDescriptorHandle = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
@@ -217,6 +223,9 @@ void MLOP::Bind()
 
 void MLOP::tapi()
 {
+	if (!dmlOperatorInitializer)
+		return;
+
 	auto bp = dmlOperatorInitializer->GetBindingProperties();
 	if (bp.TemporaryResourceSize)
 	{
@@ -284,15 +293,23 @@ void ML::SetDescriptorHeaps()
 
 void  ML::Record(int what)
 {
+	if (!dmlCommandRecorder)
+		return;
 	if (what == 0)
 	{
 		for (auto& op : ops)
-			dmlCommandRecorder->RecordDispatch(commandList, op.dmlOperatorInitializer, op.dmlBindingTable);
+		{
+			if (op.dmlOperatorInitializer)
+				dmlCommandRecorder->RecordDispatch(commandList, op.dmlOperatorInitializer, op.dmlBindingTable);
+		}
 	}
 	if (what == 1)
 	{
 		for (auto& op : ops)
-			dmlCommandRecorder->RecordDispatch(commandList, op.dmlCompiledOperator, op.dmlBindingTable);
+		{
+			if (op.dmlCompiledOperator)
+				dmlCommandRecorder->RecordDispatch(commandList, op.dmlCompiledOperator, op.dmlBindingTable);
+		}
 	}
 }
 
@@ -465,9 +482,9 @@ ML::ML(bool dbg)
 	Debug = dbg;
 }
 
-HRESULT ML::On()
+HRESULT ML::On(IDXGIAdapter* ad)
 {
-	auto hr = InitializeDirect3D12();
+	auto hr = InitializeDirect3D12(ad);
 	if (FAILED(hr))
 		return hr;
 	hr = CreateDML();
@@ -478,7 +495,7 @@ HRESULT ML::On()
 }
 
 
-HRESULT ML::InitializeDirect3D12()
+HRESULT ML::InitializeDirect3D12(IDXGIAdapter* adapter)
 {
 	if (d3D12Device)
 		return S_FALSE;
@@ -493,29 +510,42 @@ HRESULT ML::InitializeDirect3D12()
 	}
 #endif
 
-	CComPtr<IDXGIFactory4> dxgiFactory;
-	CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
-
-	CComPtr<IDXGIAdapter> dxgiAdapter;
-	UINT adapterIndex{};
 	HRESULT hr{};
-	do
+	if (adapter)
 	{
-		dxgiAdapter = nullptr;
-		dxgiAdapter = 0;
-		if (FAILED((dxgiFactory->EnumAdapters(adapterIndex, &dxgiAdapter))))
-			return E_FAIL;
-		++adapterIndex;
-
-		d3D12Device = 0;
 		hr = ::D3D12CreateDevice(
-			dxgiAdapter,
+			adapter,
 			D3D_FEATURE_LEVEL_11_0,
 			IID_PPV_ARGS(&d3D12Device));
-		if (hr == DXGI_ERROR_UNSUPPORTED) continue;
 		if (FAILED(hr))
 			return hr;
-	} while (hr != S_OK);
+	}
+	else
+	{
+
+		CComPtr<IDXGIFactory4> dxgiFactory;
+		CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
+
+		CComPtr<IDXGIAdapter> dxgiAdapter;
+		UINT adapterIndex{};
+		do
+		{
+			dxgiAdapter = nullptr;
+			dxgiAdapter = 0;
+			if (FAILED((dxgiFactory->EnumAdapters(adapterIndex, &dxgiAdapter))))
+				return E_FAIL;
+			++adapterIndex;
+
+			d3D12Device = 0;
+			hr = ::D3D12CreateDevice(
+				dxgiAdapter,
+				D3D_FEATURE_LEVEL_11_0,
+				IID_PPV_ARGS(&d3D12Device));
+			if (hr == DXGI_ERROR_UNSUPPORTED) continue;
+			if (FAILED(hr))
+				return hr;
+		} while (hr != S_OK);
+	}
 
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 	commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
