@@ -13,8 +13,6 @@ auto LinearRegressionCPU(float* px, float* py, size_t n)
 		Sy += py[i];
 		Sxy += px[i] * py[i];
 	}
-	// B
-
 	float B = (n * Sxy - Sx * Sy) / ((n * Sx2) - (Sx * Sx));
 	float A = (Sy - (B * Sx)) / n;
 
@@ -36,9 +34,9 @@ void RandomData()
 	xs.clear();
 	ys.clear();
 
-	int how = 1024 * 1024 * 32;
+	unsigned long long how = 1024 * 1024 * 8;
 
-	printf("Generating %i random floats...\r\n", how);
+	printf("Generating %zi random floats...\r\n", how);
 	xs.resize(how);
 	ys.resize(how);
 
